@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Audio Downloader - M4A AAC 64kbps</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .example {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status.info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .instructions h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .instructions code {
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 YouTube Audio Downloader</h1>
+        <p class="subtitle">Descarga audio en formato M4A AAC 64kbps</p>
+
+        <div class="input-group">
+            <label for="videoId">ID del Video de YouTube:</label>
+            <input 
+                type="text" 
+                id="videoId" 
+                placeholder="Ej: dQw4w9WgXcQ"
+                autocomplete="off"
+            >
+            <p class="example">💡 Puedes pegar la URL completa o solo el ID del video</p>
+        </div>
+
+        <button id="downloadBtn" onclick="downloadAudio()">
+            Descargar Audio
+        </button>
+
+        <div id="status" class="status"></div>
+
+        <div class="instructions">
+            <h3>📋 Instrucciones de uso:</h3>
+            <ol>
+                <li>Instala <code>yt-dlp</code> y <code>ffmpeg</code> en tu sistema</li>
+                <li>Para Windows: descarga desde <a href="https://github.com/yt-dlp/yt-dlp/releases" target="_blank">yt-dlp releases</a> y <a href="https://ffmpeg.org/download.html" target="_blank">ffmpeg</a></li>
+                <li>Agrega ambos al PATH de tu sistema</li>
+                <li>Ejecuta el servidor local con: <code>npm start</code></li>
+                <li>Ingresa el ID o URL del video de YouTube</li>
+                <li>Haz clic en "Descargar Audio"</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function extractVideoId(input) {
+            input = input.trim();
+            
+            // Si es solo el ID
+            if (input.length === 11 && !input.includes('/') && !input.includes('?')) {
+                return input;
+            }
+            
+            // Patrones de URL de YouTube
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+                /^([a-zA-Z0-9_-]{11})$/
+            ];
+            
+            for (const pattern of patterns) {
+                const match = input.match(pattern);
+                if (match) {
+                    return match[1];
+                }
+            }
+            
+            return null;
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type} show`;
+        }
+
+        async function downloadAudio() {
+            const input = document.getElementById('videoId').value;
+            const videoId = extractVideoId(input);
+            
+            if (!videoId) {
+                showStatus('❌ Por favor ingresa un ID o URL válido de YouTube', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('downloadBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span>Descargando...';
+            
+            showStatus('⏳ Procesando solicitud...', 'info');
+
+            try {
+                const response = await fetch('http://localhost:3001/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ videoId })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error al descargar');
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${videoId}.m4a`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                showStatus('✅ ¡Audio descargado exitosamente!', 'success');
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                console.error('Error:', error);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Descargar Audio';
+            }
+        }
+
+        // Permitir Enter para descargar
+        document.getElementById('videoId').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                downloadAudio();
+            }
+        });
+    </script>
+</body>
+</html>
