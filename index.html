@@ -127,6 +127,96 @@
             display: block;
         }
 
+        .progress-steps {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .progress-steps.show {
+            display: block;
+        }
+
+        .step {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #f5f5f5;
+            color: #999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step.active {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .step.completed {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .cdn-link-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .cdn-link-container.show {
+            display: block;
+        }
+
+        .cdn-link-container h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .link-box {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .link-input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            background: white;
+            color: #333;
+        }
+
+        .link-input:focus {
+            outline: none;
+            border-color: #5568d3;
+        }
+
+        .copy-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+
+        .copy-btn.copied {
+            background: #388e3c;
+        }
+
         .instructions {
             margin-top: 30px;
             padding: 20px;
@@ -192,20 +282,135 @@
 
         <div id="status" class="status"></div>
 
+        <div id="progressSteps" class="progress-steps">
+            <div class="step" id="step1">
+                <span>⏳</span>
+                <span>1. Descargando de YouTube...</span>
+            </div>
+            <div class="step" id="step2">
+                <span>⏳</span>
+                <span>2. Convirtiendo a M4A 64kbps...</span>
+            </div>
+            <div class="step" id="step3">
+                <span>⏳</span>
+                <span>3. Subiendo a GitHub...</span>
+            </div>
+            <div class="step" id="step4">
+                <span>⏳</span>
+                <span>4. Enviando archivo...</span>
+            </div>
+        </div>
+
+        <div id="cdnLinkContainer" class="cdn-link-container">
+            <h3>🔗 Link de streaming (CDN):</h3>
+            <p style="color: #666; font-size: 13px; margin-bottom: 10px;">
+                Usa este link para reproducir el audio directamente desde GitHub:
+            </p>
+            <div class="link-box">
+                <input type="text" class="link-input" id="cdnLink" readonly>
+                <button class="copy-btn" id="copyBtn" onclick="copyToClipboard(event)">📋 Copiar</button>
+            </div>
+        </div>
+
         <div class="instructions">
             <h3>📋 Instrucciones de uso:</h3>
             <ol>
-                <li>Instala <code>yt-dlp</code> y <code>ffmpeg</code> en tu sistema</li>
-                <li>Para Windows: descarga desde <a href="https://github.com/yt-dlp/yt-dlp/releases" target="_blank">yt-dlp releases</a> y <a href="https://ffmpeg.org/download.html" target="_blank">ffmpeg</a></li>
-                <li>Agrega ambos al PATH de tu sistema</li>
+                <li>Las dependencias (yt-dlp y ffmpeg) ya están incluidas en la carpeta <code>deps/</code></li>
                 <li>Ejecuta el servidor local con: <code>npm start</code></li>
                 <li>Ingresa el ID o URL del video de YouTube</li>
                 <li>Haz clic en "Descargar Audio"</li>
+                <li>El audio se descargará localmente Y se subirá automáticamente a GitHub</li>
+                <li>Obtendrás un link de CDN para streaming directo del audio</li>
             </ol>
         </div>
     </div>
 
     <script>
+        function updateStep(stepNumber, status) {
+            const step = document.getElementById(`step${stepNumber}`);
+            const icon = step.querySelector('span:first-child');
+            
+            if (status === 'active') {
+                step.className = 'step active';
+                icon.textContent = '⏳';
+            } else if (status === 'completed') {
+                step.className = 'step completed';
+                icon.textContent = '✅';
+            }
+        }
+
+        function showProgressSteps(show) {
+            const container = document.getElementById('progressSteps');
+            if (show) {
+                container.classList.add('show');
+                // Reset all steps
+                for (let i = 1; i <= 4; i++) {
+                    const step = document.getElementById(`step${i}`);
+                    step.className = 'step';
+                    step.querySelector('span:first-child').textContent = '⏳';
+                }
+            } else {
+                container.classList.remove('show');
+            }
+        }
+
+        function showCdnLink(videoId) {
+            console.log('[DEBUG] showCdnLink called with videoId:', videoId);
+            
+            const container = document.getElementById('cdnLinkContainer');
+            const input = document.getElementById('cdnLink');
+            const cdnUrl = `https://cdn.jsdelivr.net/gh/nanoview2/x2q24t/${videoId}.m4a`;
+            
+            console.log('[DEBUG] CDN URL:', cdnUrl);
+            console.log('[DEBUG] Input element:', input);
+            console.log('[DEBUG] Container element:', container);
+            
+            input.value = cdnUrl;
+            container.classList.add('show');
+            
+            console.log('[DEBUG] Input value after setting:', input.value);
+        }
+
+        function copyToClipboard(event) {
+            const input = document.getElementById('cdnLink');
+            const btn = event.target;
+            
+            // Seleccionar y copiar usando la API moderna
+            input.select();
+            input.setSelectionRange(0, 99999); // Para móviles
+            
+            try {
+                // Usar clipboard API moderna si está disponible
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(input.value).then(() => {
+                        // Feedback visual
+                        btn.classList.add('copied');
+                        btn.textContent = '✅ Copiado';
+                        
+                        setTimeout(() => {
+                            btn.classList.remove('copied');
+                            btn.textContent = '📋 Copiar';
+                        }, 2000);
+                    });
+                } else {
+                    // Fallback para navegadores antiguos
+                    document.execCommand('copy');
+                    btn.classList.add('copied');
+                    btn.textContent = '✅ Copiado';
+                    
+                    setTimeout(() => {
+                        btn.classList.remove('copied');
+                        btn.textContent = '📋 Copiar';
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('Error al copiar:', err);
+                btn.textContent = '❌ Error';
+                setTimeout(() => {
+                    btn.textContent = '📋 Copiar';
+                }, 2000);
+            }
+        }
         function extractVideoId(input) {
             input = input.trim();
             
@@ -247,9 +452,27 @@
 
             const btn = document.getElementById('downloadBtn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="loader"></span>Descargando...';
+            btn.innerHTML = '<span class="loader"></span>Procesando...';
             
-            showStatus('⏳ Procesando solicitud...', 'info');
+            // Ocultar CDN link anterior
+            document.getElementById('cdnLinkContainer').classList.remove('show');
+            
+            // Mostrar pasos de progreso
+            showProgressSteps(true);
+            showStatus('🚀 Iniciando proceso...', 'info');
+            
+            // Simular progreso de pasos (el servidor hace todo internamente)
+            updateStep(1, 'active');
+            
+            setTimeout(() => {
+                updateStep(1, 'completed');
+                updateStep(2, 'active');
+            }, 1000);
+            
+            setTimeout(() => {
+                updateStep(2, 'completed');
+                updateStep(3, 'active');
+            }, 3000);
 
             try {
                 const response = await fetch('http://localhost:3001/download', {
@@ -265,6 +488,9 @@
                     throw new Error(error.error || 'Error al descargar');
                 }
 
+                updateStep(3, 'completed');
+                updateStep(4, 'active');
+
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -275,9 +501,14 @@
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
 
-                showStatus('✅ ¡Audio descargado exitosamente!', 'success');
+                updateStep(4, 'completed');
+                showStatus('✅ ¡Proceso completado exitosamente!', 'success');
+                
+                // Mostrar link de CDN
+                showCdnLink(videoId);
             } catch (error) {
                 showStatus(`❌ Error: ${error.message}`, 'error');
+                showProgressSteps(false);
                 console.error('Error:', error);
             } finally {
                 btn.disabled = false;
